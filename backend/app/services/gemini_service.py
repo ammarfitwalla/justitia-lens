@@ -2,6 +2,8 @@ import google.generativeai as genai
 from app.config import settings
 from typing import List, Optional
 import json
+import asyncio
+from google.api_core.exceptions import ResourceExhausted
 
 class GeminiService:
     def __init__(self):
@@ -26,18 +28,32 @@ class GeminiService:
             }
         ]
         
-    async def generate_content(self, prompt: str, model_name: str = "gemini-1.5-flash-latest") -> str:
+        
+    async def _retry_async(self, func, *args, **kwargs):
+        retries = 3
+        for attempt in range(retries):
+            try:
+                return await func(*args, **kwargs)
+            except ResourceExhausted as e:
+                if attempt == retries - 1:
+                    raise e
+                print(f"Quota exceeded. Retrying in 40s... (Attempt {attempt + 1}/{retries})")
+                await asyncio.sleep(40) 
+        return await func(*args, **kwargs)
+
+    async def generate_content(self, prompt: str, model_name: str = "gemini-2.0-flash") -> str:
         """
         Generates text content using the specified Gemini model.
         """
         model = genai.GenerativeModel(model_name)
-        response = await model.generate_content_async(
+        response = await self._retry_async(
+            model.generate_content_async,
             prompt,
             safety_settings=self.safety_settings
         )
         return response.text
 
-    async def generate_json(self, prompt: str, model_name: str = "gemini-1.5-flash-latest") -> dict:
+    async def generate_json(self, prompt: str, model_name: str = "gemini-2.0-flash") -> dict:
         """
         Generates structured JSON output.
         Ensure the prompt asks for JSON.
@@ -46,7 +62,8 @@ class GeminiService:
             model_name,
             generation_config={"response_mime_type": "application/json"}
         )
-        response = await model.generate_content_async(
+        response = await self._retry_async(
+            model.generate_content_async,
             prompt,
             safety_settings=self.safety_settings
         )
@@ -56,7 +73,7 @@ class GeminiService:
             # Fallback or retry logic could go here
             return {"error": "Failed to parse JSON", "raw": response.text}
 
-    async def analyze_image(self, image_path: str, prompt: str, model_name: str = "gemini-1.5-pro-latest") -> dict:
+    async def analyze_image(self, image_path: str, prompt: str, model_name: str = "gemini-2.0-flash") -> dict:
         """
         Analyzes an image and returns JSON.
         """
@@ -74,7 +91,8 @@ class GeminiService:
             'data': image_data
         }
 
-        response = await model.generate_content_async(
+        response = await self._retry_async(
+            model.generate_content_async,
             [prompt, cookie_picture],
             safety_settings=self.safety_settings
         )

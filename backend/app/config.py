@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     
     # AI
     GEMINI_API_KEY: str = "placeholder_key"
+    AI_PROVIDER: str = "ollama" # Options: "gemini", "ollama"
+    OLLAMA_BASE_URL: str = "http://localhost:11434/api"
+    OLLAMA_MODEL: str = "llama3.1:8b"
+    OLLAMA_VISION_MODEL: str = "llava"
     
     # Storage
     STORAGE_DIR: str = os.path.join(os.getcwd(), "data")

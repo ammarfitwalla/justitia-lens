@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, History } from "lucide-react";
 
 export default function Home() {
   return (
@@ -24,11 +24,18 @@ export default function Home() {
           legal narratives and objective visual evidence.
         </p>
 
-        <Link href="/upload">
-          <Button size="lg" className="bg-blue-600 hover:bg-blue-500 text-white border-0">
-            Start New Investigation <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link href="/upload">
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-500 text-white border-0 w-full sm:w-auto">
+              Start New Investigation <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/cases">
+            <Button size="lg" variant="outline" className="border-slate-600 hover:bg-slate-800 text-white w-full sm:w-auto">
+              <History className="mr-2 h-4 w-4" /> View Recent Cases
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-3 lg:text-left mt-24 gap-8">

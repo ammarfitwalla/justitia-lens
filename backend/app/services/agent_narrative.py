@@ -1,16 +1,22 @@
 from app.services.gemini_service import GeminiService
+from app.services.ollama_service import OllamaService
 from app.services.pdf_service import PDFService
 from app.config import settings
 import json
 
 class AgentNarrative:
     def __init__(self):
-        self.gemini = GeminiService()
+        self.provider = settings.AI_PROVIDER
+        if self.provider == "ollama":
+            self.llm = OllamaService()
+        else:
+            self.llm = GeminiService()
     
     async def extract_claims(self, text: str) -> dict:
         """
         Analyzes narrative text to extract factual claims.
         """
+        # ... prompt construction remains ...
         prompt = f"""
         You are a Forensic Narrative Analyst. Extract a chronological timeline of OBJECTIVE FACTUAL ASSERTIONS from the police report.
         
@@ -39,8 +45,14 @@ class AgentNarrative:
         """
         
         try:
-            return await self.gemini.generate_json(prompt, model_name="gemini-1.5-flash-latest")
+            if self.provider == "ollama":
+                return await self.llm.generate_json(prompt)
+            else:
+                 return await self.llm.generate_json(prompt, model_name="gemini-2.0-flash")
         except Exception as e:
+            import traceback
+            print("Error in extract_claims:")
+            traceback.print_exc()
             return {"error": str(e), "timeline": []}
 
     async def process_report(self, file_path: str) -> dict:
@@ -48,4 +60,7 @@ class AgentNarrative:
             text = PDFService.extract_text(file_path)
             return await self.extract_claims(text)
         except Exception as e:
+            import traceback
+            print(f"Error in process_report for file {file_path}:")
+            traceback.print_exc()
             return {"error": str(e)}

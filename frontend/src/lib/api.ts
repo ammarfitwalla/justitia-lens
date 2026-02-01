@@ -14,8 +14,24 @@ export interface Case {
     title: string;
     description: string;
     status: string;
+    analysis_status: string;
+    narrative_analysis_json?: string;
+    vision_analysis_json?: string;
+    synthesis_analysis_json?: string;
     evidence?: Evidence[];
     reports?: Report[];
+}
+
+export interface CaseListItem {
+    id: number;
+    title: string;
+    description?: string;
+    status: string;
+    analysis_status: string;
+    created_at: string;
+    updated_at?: string;
+    evidence_count: number;
+    report_count: number;
 }
 
 export interface Report {
@@ -47,15 +63,34 @@ export interface VisionObservation {
     label: string;
     confidence: string;
     details: string;
+    evidence_id?: number;  // Which evidence this observation came from
+    evidence_index?: number;  // 1-based index for display
+}
+
+// Synthesis/Discrepancy interfaces
+export interface SynthesisDiscrepancy {
+    timestamp_ref?: string;
+    clean_claim: string;   // What the report says
+    visual_fact: string;   // What the evidence shows
+    description: string;   // Explanation of the discrepancy
+    status: string;        // FLAGGED, REVIEWED, DISMISSED
 }
 
 export const endpoints = {
+    // Case management
+    getCases: () =>
+        api.get<CaseListItem[]>('/cases'),
+
     createCase: (data: { title: string; description: string }) =>
         api.post<Case>('/cases', data),
 
     getCase: (caseId: number) =>
         api.get<Case>(`/cases/${caseId}`),
 
+    deleteCase: (caseId: number) =>
+        api.delete(`/cases/${caseId}`),
+
+    // File uploads
     uploadReport: (caseId: number, file: File) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -72,9 +107,22 @@ export const endpoints = {
         });
     },
 
-    analyzeNarrative: (caseId: number) =>
-        api.post<{ timeline: NarrativeClaim[] }>(`/analyze/case/${caseId}/narrative`),
+    // Analysis
+    analyzeNarrative: (caseId: number, forceRerun: boolean = false) =>
+        api.post<{ timeline: NarrativeClaim[] }>(`/analyze/case/${caseId}/narrative?force_rerun=${forceRerun}`),
 
-    analyzeEvidence: (evidenceId: number) =>
-        api.post<{ observations: VisionObservation[] }>(`/analyze/evidence/${evidenceId}`)
+    // Analyze single evidence item (kept for backwards compatibility)
+    analyzeEvidence: (evidenceId: number, forceRerun: boolean = false) =>
+        api.post<{ observations: VisionObservation[] }>(`/analyze/evidence/${evidenceId}?force_rerun=${forceRerun}`),
+
+    // Analyze ALL evidence for a case (aggregated results)
+    analyzeAllEvidence: (caseId: number, forceRerun: boolean = false) =>
+        api.post<{ observations: VisionObservation[] }>(`/analyze/case/${caseId}/evidence?force_rerun=${forceRerun}`),
+
+    // Synthesis - cross-reference narrative with visual evidence to find discrepancies
+    synthesize: (caseId: number, forceRerun: boolean = false) =>
+        api.post<{ discrepancies: SynthesisDiscrepancy[] }>(`/analyze/case/${caseId}/synthesize?force_rerun=${forceRerun}`),
+
+    rerunAnalysis: (caseId: number) =>
+        api.post<{ message: string; narrative_analysis: any; vision_analysis: any }>(`/analyze/case/${caseId}/rerun`),
 };

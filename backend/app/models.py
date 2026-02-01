@@ -23,6 +23,12 @@ class Case(Base):
     status = Column(String, default="OPEN")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Analysis cache fields
+    narrative_analysis_json = Column(Text, nullable=True)  # Cached narrative agent result
+    vision_analysis_json = Column(Text, nullable=True)     # Cached vision agent result
+    synthesis_analysis_json = Column(Text, nullable=True)  # Cached discrepancy detection result
+    analysis_status = Column(String, default="PENDING")    # PENDING, IN_PROGRESS, COMPLETED
 
     evidence = relationship("Evidence", back_populates="case", cascade="all, delete-orphan")
     reports = relationship("Report", back_populates="case", cascade="all, delete-orphan")

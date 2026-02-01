@@ -1,15 +1,21 @@
 from app.services.gemini_service import GeminiService
+from app.services.ollama_service import OllamaService
 from app.config import settings
 import json
 
 class AgentVision:
     def __init__(self):
-        self.gemini = GeminiService()
+        self.provider = settings.AI_PROVIDER
+        if self.provider == "ollama":
+            self.llm = OllamaService()
+        else:
+            self.llm = GeminiService()
 
     async def analyze_evidence(self, image_path: str) -> dict:
         """
         Analyzes an image for forensic discovery points with strict guardrails.
         """
+        # ... prompt construction ...
         prompt = """
         You are a Forensic Visual Analyst. Analyze this image for objective discovery points.
         
@@ -51,7 +57,10 @@ class AgentVision:
         """
         
         try:
-            return await self.gemini.analyze_image(image_path, prompt, model_name="gemini-1.5-pro-latest")
+            if self.provider == "ollama":
+                return await self.llm.analyze_image(image_path, prompt)
+            else:
+                return await self.llm.analyze_image(image_path, prompt, model_name="gemini-2.0-flash")
         except Exception as e:
             # Fallback for JSON parsing or API errors
             return {"error": str(e), "observations": []}

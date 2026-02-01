@@ -4,16 +4,17 @@ from fastapi import UploadFile
 from app.config import settings
 import uuid
 
-# Ensure storage directory exists
+# Ensure base storage directory exists
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)
 
-async def save_upload_file(file: UploadFile, subfolder: str = "") -> str:
+async def save_upload_file(file: UploadFile, case_id: int, subfolder: str = "") -> str:
     """
-    Saves a specific upload file to the local storage.
+    Saves a specific upload file to the local storage, organized by case ID.
+    Files are stored as: data/cases/{case_id}/{subfolder}/{filename}
     Returns: The absolute file path.
     """
-    # Create subfolder if needed (e.g., 'evidence' or 'reports')
-    target_dir = os.path.join(settings.STORAGE_DIR, subfolder)
+    # Create case-specific directory structure: data/cases/{case_id}/{subfolder}
+    target_dir = os.path.join(settings.STORAGE_DIR, "cases", str(case_id), subfolder)
     os.makedirs(target_dir, exist_ok=True)
     
     # Generate unique filename to prevent collisions
@@ -26,3 +27,4 @@ async def save_upload_file(file: UploadFile, subfolder: str = "") -> str:
         await out_file.write(content)
         
     return file_path
+

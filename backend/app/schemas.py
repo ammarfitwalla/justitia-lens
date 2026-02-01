@@ -74,10 +74,28 @@ class Case(CaseBase):
     status: str
     created_at: datetime
     updated_at: Optional[datetime] = None
+    analysis_status: str = "PENDING"
+    narrative_analysis_json: Optional[str] = None
+    vision_analysis_json: Optional[str] = None
+    synthesis_analysis_json: Optional[str] = None
     evidence: List[Evidence] = []
     reports: List[Report] = []
     discrepancies: List[Discrepancy] = []
 
+    model_config = ConfigDict(from_attributes=True)
+
+class CaseListItem(BaseModel):
+    """Schema for listing cases with counts instead of full nested objects"""
+    id: int
+    title: str
+    description: Optional[str] = None
+    status: str
+    analysis_status: str = "PENDING"
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    evidence_count: int = 0
+    report_count: int = 0
+    
     model_config = ConfigDict(from_attributes=True)
 
 # --- Agent Analysis Schemas ---
@@ -89,6 +107,8 @@ class VisionObservation(BaseModel):
     label: str
     confidence: str # LOW, MEDIUM, HIGH
     details: Optional[str] = None
+    evidence_id: Optional[int] = None  # Which evidence this observation came from
+    evidence_index: Optional[int] = None  # 1-based index for display
 
 class VisionAnalysisResult(BaseModel):
     observations: List[VisionObservation]
@@ -104,3 +124,14 @@ class NarrativeClaim(BaseModel):
 class NarrativeAnalysisResult(BaseModel):
     timeline: List[NarrativeClaim]
 
+# --- Synthesis/Discrepancy Detection Schemas ---
+
+class SynthesisDiscrepancy(BaseModel):
+    timestamp_ref: Optional[str] = None
+    clean_claim: str  # What the report says
+    visual_fact: str  # What the evidence shows
+    description: str  # Explanation of the discrepancy
+    status: str = "FLAGGED"
+
+class SynthesisAnalysisResult(BaseModel):
+    discrepancies: List[SynthesisDiscrepancy]

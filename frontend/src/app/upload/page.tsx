@@ -59,6 +59,7 @@ export default function UploadPage() {
                                 type="evidence"
                                 accept={{ 'image/*': ['.png', '.jpg', '.jpeg'] }}
                                 onUpload={handleEvidenceUpload}
+                                multiple={true}
                             />
                             <p className="text-sm text-muted-foreground text-center">
                                 {evidenceCount} items uploaded

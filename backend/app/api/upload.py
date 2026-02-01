@@ -1,23 +1,65 @@
 from fastapi import APIRouter, UploadFile, File, Depends, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func as sql_func
+from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app import models, schemas
 from app.utils.storage import save_upload_file
+from typing import List
 import os
 
 router = APIRouter()
+
+@router.get("/cases", response_model=List[schemas.CaseListItem])
+async def list_cases(db: AsyncSession = Depends(get_db)):
+    """List all cases with their evidence and report counts."""
+    # Query cases with counts using subqueries
+    evidence_count_subq = (
+        select(models.Evidence.case_id, sql_func.count(models.Evidence.id).label("evidence_count"))
+        .group_by(models.Evidence.case_id)
+        .subquery()
+    )
+    report_count_subq = (
+        select(models.Report.case_id, sql_func.count(models.Report.id).label("report_count"))
+        .group_by(models.Report.case_id)
+        .subquery()
+    )
+    
+    result = await db.execute(
+        select(
+            models.Case,
+            sql_func.coalesce(evidence_count_subq.c.evidence_count, 0).label("evidence_count"),
+            sql_func.coalesce(report_count_subq.c.report_count, 0).label("report_count")
+        )
+        .outerjoin(evidence_count_subq, models.Case.id == evidence_count_subq.c.case_id)
+        .outerjoin(report_count_subq, models.Case.id == report_count_subq.c.case_id)
+        .order_by(models.Case.created_at.desc())
+    )
+    
+    cases = []
+    for row in result.all():
+        case = row[0]
+        cases.append(schemas.CaseListItem(
+            id=case.id,
+            title=case.title,
+            description=case.description,
+            status=case.status,
+            analysis_status=case.analysis_status or "PENDING",
+            created_at=case.created_at,
+            updated_at=case.updated_at,
+            evidence_count=row[1],
+            report_count=row[2]
+        ))
+    
+    return cases
 
 @router.post("/cases", response_model=schemas.Case)
 async def create_case(case: schemas.CaseCreate, db: AsyncSession = Depends(get_db)):
     new_case = models.Case(title=case.title, description=case.description)
     db.add(new_case)
     await db.commit()
-    # await db.refresh(new_case) # Refresh is often not enough for relationships in async
     
     # Re-fetch with eager loading to satisfy Pydantic
-    from sqlalchemy import select
-    from sqlalchemy.orm import selectinload
-    
     result = await db.execute(
         select(models.Case)
         .where(models.Case.id == new_case.id)
@@ -31,9 +73,6 @@ async def create_case(case: schemas.CaseCreate, db: AsyncSession = Depends(get_d
 
 @router.get("/cases/{case_id}", response_model=schemas.Case)
 async def get_case(case_id: int, db: AsyncSession = Depends(get_db)):
-    from sqlalchemy import select
-    from sqlalchemy.orm import selectinload
-    
     result = await db.execute(
         select(models.Case)
         .where(models.Case.id == case_id)
@@ -49,6 +88,26 @@ async def get_case(case_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
+@router.delete("/cases/{case_id}")
+async def delete_case(case_id: int, db: AsyncSession = Depends(get_db)):
+    """Delete a case and all associated files."""
+    case = await db.get(models.Case, case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    
+    # Delete the case (cascade will handle related records)
+    await db.delete(case)
+    await db.commit()
+    
+    # Optionally delete files from disk
+    from app.config import settings
+    import shutil
+    case_dir = os.path.join(settings.STORAGE_DIR, "cases", str(case_id))
+    if os.path.exists(case_dir):
+        shutil.rmtree(case_dir)
+    
+    return {"message": f"Case {case_id} deleted successfully"}
+
 @router.post("/upload/evidence/{case_id}", response_model=schemas.Evidence)
 async def upload_evidence(
     case_id: int,
@@ -60,7 +119,6 @@ async def upload_evidence(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    # Save file locally
     # Determine type based on mime type or extension
     mime_type = file.content_type
     evidence_type = models.EvidenceType.IMAGE
@@ -69,13 +127,13 @@ async def upload_evidence(
     elif mime_type.startswith("audio"):
         evidence_type = models.EvidenceType.AUDIO
     
-    file_path = await save_upload_file(file, subfolder="evidence")
+    # Save file to case-specific directory
+    file_path = await save_upload_file(file, case_id=case_id, subfolder="evidence")
     
     new_evidence = models.Evidence(
         case_id=case_id,
         file_path=file_path,
         type=evidence_type,
-        # Default metadata could be extracted later
     )
     db.add(new_evidence)
     await db.commit()
@@ -96,7 +154,8 @@ async def upload_report(
     if not file.filename.endswith(".pdf"):
          raise HTTPException(status_code=400, detail="Only PDF reports are supported")
 
-    file_path = await save_upload_file(file, subfolder="reports")
+    # Save file to case-specific directory
+    file_path = await save_upload_file(file, case_id=case_id, subfolder="reports")
     
     new_report = models.Report(
         case_id=case_id,
@@ -106,3 +165,4 @@ async def upload_report(
     await db.commit()
     await db.refresh(new_report)
     return new_report
+
