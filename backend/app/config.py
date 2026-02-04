@@ -19,10 +19,17 @@ class Settings(BaseSettings):
     
     # AI
     GEMINI_API_KEY: str = "placeholder_key"
-    AI_PROVIDER: str = "ollama" # Options: "gemini", "ollama"
+    AI_PROVIDER: str = "ollama" # Options: "gemini", "ollama", "cloudqwen"
     OLLAMA_BASE_URL: str = "http://localhost:11434/api"
     OLLAMA_MODEL: str = "llama3.1:8b"
     OLLAMA_VISION_MODEL: str = "llava"
+    OLLAMA_API_KEY: str = ""  # Optional, for Ollama cloud
+    
+    # CloudQwen
+    CLOUDQWEN_API_KEY: str = "placeholder_key"
+    CLOUDQWEN_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    CLOUDQWEN_MODEL: str = "qwen-plus"
+    CLOUDQWEN_VISION_MODEL: str = "qwen-vl-plus"
     
     # Storage
     STORAGE_DIR: str = os.path.join(os.getcwd(), "data")

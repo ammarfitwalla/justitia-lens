@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { endpoints, NarrativeClaim, VisionObservation, Case } from '@/lib/api';
+import { endpoints, NarrativeClaim, VisionObservation, Case, SynthesisDiscrepancy } from '@/lib/api';
 import { ClaimCard } from '@/components/ClaimCard';
 import { EvidenceCard } from '@/components/EvidenceCard';
+import { DiscrepancyCard } from '@/components/DiscrepancyCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Play, RefreshCw, CheckCircle, ArrowLeft, FileText, Eye } from 'lucide-react';
+import { Loader2, Play, RefreshCw, CheckCircle, ArrowLeft, FileText, Eye, AlertTriangle, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 import { useParams } from 'next/navigation';
@@ -19,16 +20,19 @@ export default function AnalysisPage() {
 
     const [narrativeClaims, setNarrativeClaims] = useState<NarrativeClaim[]>([]);
     const [observations, setObservations] = useState<VisionObservation[]>([]);
+    const [discrepancies, setDiscrepancies] = useState<SynthesisDiscrepancy[]>([]);
     const [evidence, setEvidence] = useState<any[]>([]);
     const [caseData, setCaseData] = useState<Case | null>(null);
 
     // Separate loading states for each analysis
     const [isNarrativeAnalyzing, setIsNarrativeAnalyzing] = useState(false);
     const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
+    const [isSynthesizing, setIsSynthesizing] = useState(false);
 
     // Track if we have cached results for each
     const [hasNarrativeCache, setHasNarrativeCache] = useState(false);
     const [hasVisionCache, setHasVisionCache] = useState(false);
+    const [hasSynthesisCache, setHasSynthesisCache] = useState(false);
 
     useEffect(() => {
         const fetchCase = async () => {
@@ -59,6 +63,17 @@ export default function AnalysisPage() {
                         console.error("Failed to parse cached vision", e);
                     }
                 }
+
+                // Check for cached synthesis results
+                if (data.synthesis_analysis_json) {
+                    try {
+                        const cached = JSON.parse(data.synthesis_analysis_json);
+                        setDiscrepancies(cached.discrepancies || []);
+                        setHasSynthesisCache(true);
+                    } catch (e) {
+                        console.error("Failed to parse cached synthesis", e);
+                    }
+                }
             } catch (err) {
                 console.error("Failed to load case", err);
             }
@@ -73,6 +88,11 @@ export default function AnalysisPage() {
             const narrativeRes = await endpoints.analyzeNarrative(caseId, forceRerun);
             setNarrativeClaims(narrativeRes.data.timeline || []);
             setHasNarrativeCache(true);
+            // Clear synthesis cache since inputs changed
+            if (forceRerun) {
+                setDiscrepancies([]);
+                setHasSynthesisCache(false);
+            }
         } catch (error) {
             console.error("Narrative Analysis Failed", error);
         } finally {
@@ -90,6 +110,11 @@ export default function AnalysisPage() {
             const visionRes = await endpoints.analyzeAllEvidence(caseId, forceRerun);
             setObservations(visionRes.data.observations || []);
             setHasVisionCache(true);
+            // Clear synthesis cache since inputs changed
+            if (forceRerun) {
+                setDiscrepancies([]);
+                setHasSynthesisCache(false);
+            }
         } catch (error) {
             console.error("Vision Analysis Failed", error);
         } finally {
@@ -97,14 +122,31 @@ export default function AnalysisPage() {
         }
     };
 
-    // Run both analyses sequentially
+    // Run synthesis analysis
+    const runSynthesis = async (forceRerun: boolean = false) => {
+        setIsSynthesizing(true);
+        try {
+            const synthesisRes = await endpoints.synthesize(caseId, forceRerun);
+            setDiscrepancies(synthesisRes.data.discrepancies || []);
+            setHasSynthesisCache(true);
+        } catch (error) {
+            console.error("Synthesis Failed", error);
+        } finally {
+            setIsSynthesizing(false);
+        }
+    };
+
+    // Run all analyses sequentially
     const runFullDiscovery = async () => {
         await runNarrativeAnalysis(false);
         await runVisionAnalysis(false);
+        // Auto-run synthesis after both are complete
+        await runSynthesis(false);
     };
 
-    const isAnyAnalyzing = isNarrativeAnalyzing || isVisionAnalyzing;
-    const hasBothResults = hasNarrativeCache && hasVisionCache;
+    const isAnyAnalyzing = isNarrativeAnalyzing || isVisionAnalyzing || isSynthesizing;
+    const canRunSynthesis = hasNarrativeCache && hasVisionCache;
+    const isFullyComplete = hasNarrativeCache && hasVisionCache && hasSynthesisCache;
 
     return (
         <div className="h-screen flex flex-col bg-gray-50">
@@ -121,7 +163,7 @@ export default function AnalysisPage() {
                             <h1 className="text-xl font-bold">
                                 {caseData?.title || `Investigation #${caseId}`}
                             </h1>
-                            {hasBothResults && (
+                            {isFullyComplete && (
                                 <Badge variant="outline" className="text-green-600 border-green-600">
                                     <CheckCircle className="mr-1 h-3 w-3" /> Fully Analyzed
                                 </Badge>
@@ -134,7 +176,7 @@ export default function AnalysisPage() {
                     <Button onClick={runFullDiscovery} disabled={isAnyAnalyzing}>
                         {isAnyAnalyzing ? (
                             <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
-                        ) : hasBothResults ? (
+                        ) : isFullyComplete ? (
                             <><CheckCircle className="mr-2 h-4 w-4" /> Results Ready</>
                         ) : (
                             <><Play className="mr-2 h-4 w-4" /> Run Full Discovery</>
@@ -143,33 +185,34 @@ export default function AnalysisPage() {
                 </div>
             </header>
 
-            {/* Split Screen */}
+            {/* Three Column Layout */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Left: Narrative Agent */}
-                <div className="w-1/2 p-6 overflow-y-auto border-r bg-white/50">
+                <div className="w-1/3 p-4 overflow-y-auto border-r bg-white/50">
                     <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <FileText className="h-5 w-5 text-blue-600" />
-                            <h2 className="text-lg font-semibold text-blue-900">Narrative Timeline</h2>
+                            <h2 className="text-lg font-semibold text-blue-900">Narrative</h2>
                             {hasNarrativeCache && (
                                 <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 text-xs">
-                                    <CheckCircle className="mr-1 h-3 w-3" /> Done
+                                    <CheckCircle className="mr-1 h-3 w-3" />
                                 </Badge>
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <Badge variant="outline">{narrativeClaims.length} Claims</Badge>
+                            <Badge variant="outline" className="text-xs">{narrativeClaims.length}</Badge>
                             {hasNarrativeCache ? (
                                 <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
                                     onClick={() => runNarrativeAnalysis(true)}
                                     disabled={isNarrativeAnalyzing}
+                                    className="h-7 px-2"
                                 >
                                     {isNarrativeAnalyzing ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
-                                        <><RefreshCw className="mr-1 h-3 w-3" /> Rerun</>
+                                        <RefreshCw className="h-3 w-3" />
                                     )}
                                 </Button>
                             ) : (
@@ -177,27 +220,28 @@ export default function AnalysisPage() {
                                     size="sm"
                                     onClick={() => runNarrativeAnalysis(false)}
                                     disabled={isNarrativeAnalyzing}
+                                    className="h-7 px-2"
                                 >
                                     {isNarrativeAnalyzing ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
-                                        <><Play className="mr-1 h-3 w-3" /> Analyze</>
+                                        <Play className="h-3 w-3" />
                                     )}
                                 </Button>
                             )}
                         </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {narrativeClaims.length === 0 ? (
-                            <div className="text-center py-20 text-gray-400 border-2 border-dashed rounded-lg">
+                            <div className="text-center py-16 text-gray-400 border-2 border-dashed rounded-lg">
                                 {isNarrativeAnalyzing ? (
                                     <div className="flex flex-col items-center">
                                         <Loader2 className="h-8 w-8 animate-spin mb-2" />
-                                        <p>Analyzing PDF report...</p>
+                                        <p className="text-sm">Analyzing PDF...</p>
                                     </div>
                                 ) : (
-                                    'Click "Analyze" to process the narrative'
+                                    <p className="text-sm">Click play to analyze</p>
                                 )}
                             </div>
                         ) : (
@@ -216,31 +260,32 @@ export default function AnalysisPage() {
                     </div>
                 </div>
 
-                {/* Right: Vision Agent */}
-                <div className="w-1/2 p-6 overflow-y-auto bg-gray-50">
+                {/* Middle: Vision Agent */}
+                <div className="w-1/3 p-4 overflow-y-auto border-r bg-gray-50">
                     <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Eye className="h-5 w-5 text-purple-600" />
-                            <h2 className="text-lg font-semibold text-purple-900">Visual Grounding</h2>
+                            <h2 className="text-lg font-semibold text-purple-900">Evidence</h2>
                             {hasVisionCache && (
                                 <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 text-xs">
-                                    <CheckCircle className="mr-1 h-3 w-3" /> Done
+                                    <CheckCircle className="mr-1 h-3 w-3" />
                                 </Badge>
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            <Badge variant="outline">{observations.length} Facts</Badge>
+                            <Badge variant="outline" className="text-xs">{observations.length}</Badge>
                             {hasVisionCache ? (
                                 <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
                                     onClick={() => runVisionAnalysis(true)}
                                     disabled={isVisionAnalyzing}
+                                    className="h-7 px-2"
                                 >
                                     {isVisionAnalyzing ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
-                                        <><RefreshCw className="mr-1 h-3 w-3" /> Rerun</>
+                                        <RefreshCw className="h-3 w-3" />
                                     )}
                                 </Button>
                             ) : (
@@ -248,11 +293,12 @@ export default function AnalysisPage() {
                                     size="sm"
                                     onClick={() => runVisionAnalysis(false)}
                                     disabled={isVisionAnalyzing || evidence.filter(e => e.type === 'IMAGE').length === 0}
+                                    className="h-7 px-2"
                                 >
                                     {isVisionAnalyzing ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
-                                        <><Play className="mr-1 h-3 w-3" /> Analyze</>
+                                        <Play className="h-3 w-3" />
                                     )}
                                 </Button>
                             )}
@@ -260,14 +306,14 @@ export default function AnalysisPage() {
                     </div>
 
                     {observations.length === 0 ? (
-                        <div className="text-center py-20 text-gray-400 border-2 border-dashed rounded-lg">
+                        <div className="text-center py-16 text-gray-400 border-2 border-dashed rounded-lg">
                             {isVisionAnalyzing ? (
                                 <div className="flex flex-col items-center">
                                     <Loader2 className="h-8 w-8 animate-spin mb-2" />
-                                    <p>Analyzing {evidence.filter(e => e.type === 'IMAGE').length} image(s)...</p>
+                                    <p className="text-sm">Analyzing images...</p>
                                 </div>
                             ) : (
-                                'Click "Analyze" to process the evidence'
+                                <p className="text-sm">Click play to analyze</p>
                             )}
                         </div>
                     ) : (
@@ -279,6 +325,90 @@ export default function AnalysisPage() {
                             }))}
                             imageCount={evidence.filter((e: any) => e.type === 'IMAGE').length}
                         />
+                    )}
+                </div>
+
+                {/* Right: Synthesis / Discrepancies */}
+                <div className="w-1/3 p-4 overflow-y-auto bg-white">
+                    <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            <h2 className="text-lg font-semibold text-red-900">Discrepancies</h2>
+                            {hasSynthesisCache && (
+                                <Badge
+                                    variant="outline"
+                                    className={discrepancies.length > 0
+                                        ? "text-red-600 border-red-200 bg-red-50 text-xs"
+                                        : "text-green-600 border-green-200 bg-green-50 text-xs"
+                                    }
+                                >
+                                    {discrepancies.length > 0 ? (
+                                        <AlertTriangle className="mr-1 h-3 w-3" />
+                                    ) : (
+                                        <CheckCircle className="mr-1 h-3 w-3" />
+                                    )}
+                                </Badge>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">{discrepancies.length}</Badge>
+                            {hasSynthesisCache ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => runSynthesis(true)}
+                                    disabled={isSynthesizing || !canRunSynthesis}
+                                    className="h-7 px-2"
+                                >
+                                    {isSynthesizing ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="h-3 w-3" />
+                                    )}
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    onClick={() => runSynthesis(false)}
+                                    disabled={isSynthesizing || !canRunSynthesis}
+                                    className="h-7 px-2"
+                                    variant={canRunSynthesis ? "default" : "outline"}
+                                >
+                                    {isSynthesizing ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                        <Zap className="h-3 w-3" />
+                                    )}
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+
+                    {!canRunSynthesis ? (
+                        <div className="text-center py-16 text-gray-400 border-2 border-dashed rounded-lg">
+                            <div className="flex flex-col items-center">
+                                <Zap className="h-8 w-8 mb-2 text-gray-300" />
+                                <p className="text-sm font-medium">Cross-Reference Analysis</p>
+                                <p className="text-xs mt-1">Complete both analyses first</p>
+                            </div>
+                        </div>
+                    ) : isSynthesizing ? (
+                        <div className="text-center py-16 text-gray-400 border-2 border-dashed rounded-lg">
+                            <div className="flex flex-col items-center">
+                                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                                <p className="text-sm">Cross-referencing...</p>
+                            </div>
+                        </div>
+                    ) : hasSynthesisCache ? (
+                        <DiscrepancyCard discrepancies={discrepancies} />
+                    ) : (
+                        <div className="text-center py-16 text-gray-400 border-2 border-dashed rounded-lg">
+                            <div className="flex flex-col items-center">
+                                <Zap className="h-8 w-8 mb-2 text-yellow-400" />
+                                <p className="text-sm font-medium">Ready to Cross-Reference</p>
+                                <p className="text-xs mt-1">Click the button to find discrepancies</p>
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>

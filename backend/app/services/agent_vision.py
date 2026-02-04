@@ -1,15 +1,10 @@
-from app.services.gemini_service import GeminiService
-from app.services.ollama_service import OllamaService
-from app.config import settings
+from app.services.model_factory import get_provider
 import json
 
 class AgentVision:
     def __init__(self):
-        self.provider = settings.AI_PROVIDER
-        if self.provider == "ollama":
-            self.llm = OllamaService()
-        else:
-            self.llm = GeminiService()
+        # Factory automatically selects provider based on settings.AI_PROVIDER
+        self.llm = get_provider()
 
     async def analyze_evidence(self, image_path: str) -> dict:
         """
@@ -57,10 +52,9 @@ class AgentVision:
         """
         
         try:
-            if self.provider == "ollama":
-                return await self.llm.analyze_image(image_path, prompt)
-            else:
-                return await self.llm.analyze_image(image_path, prompt, model_name="gemini-2.0-flash")
+            # All providers now implement the same interface
+            # Use provider's default vision model (configured in settings)
+            return await self.llm.analyze_image(image_path, prompt)
         except Exception as e:
             # Fallback for JSON parsing or API errors
             return {"error": str(e), "observations": []}

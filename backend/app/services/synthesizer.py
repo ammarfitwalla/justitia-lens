@@ -1,10 +1,11 @@
-from app.services.gemini_service import GeminiService
+from app.services.model_factory import get_provider
 from app import schemas
 import json
 
 class AgentSynthesizer:
     def __init__(self):
-        self.gemini = GeminiService()
+        # Factory automatically selects provider based on settings.AI_PROVIDER
+        self.llm = get_provider()
 
     async def detect_discrepancies(self, narrative: schemas.NarrativeAnalysisResult, vision: schemas.VisionAnalysisResult) -> dict:
         """
@@ -47,6 +48,7 @@ class AgentSynthesizer:
         """
         
         try:
-            return await self.gemini.generate_json(prompt, model_name="gemini-1.5-pro-latest")
+            # Use provider's default model (configured in settings)
+            return await self.llm.generate_json(prompt)
         except Exception as e:
             return {"error": str(e), "discrepancies": []}

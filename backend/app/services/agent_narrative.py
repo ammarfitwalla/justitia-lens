@@ -1,16 +1,11 @@
-from app.services.gemini_service import GeminiService
-from app.services.ollama_service import OllamaService
+from app.services.model_factory import get_provider
 from app.services.pdf_service import PDFService
-from app.config import settings
 import json
 
 class AgentNarrative:
     def __init__(self):
-        self.provider = settings.AI_PROVIDER
-        if self.provider == "ollama":
-            self.llm = OllamaService()
-        else:
-            self.llm = GeminiService()
+        # Factory automatically selects provider based on settings.AI_PROVIDER
+        self.llm = get_provider()
     
     async def extract_claims(self, text: str) -> dict:
         """
@@ -45,10 +40,9 @@ class AgentNarrative:
         """
         
         try:
-            if self.provider == "ollama":
-                return await self.llm.generate_json(prompt)
-            else:
-                 return await self.llm.generate_json(prompt, model_name="gemini-2.0-flash")
+            # All providers now implement the same interface
+            # Use provider's default model (configured in settings)
+            return await self.llm.generate_json(prompt)
         except Exception as e:
             import traceback
             print("Error in extract_claims:")

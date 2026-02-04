@@ -1,11 +1,12 @@
 import google.generativeai as genai
 from app.config import settings
-from typing import List, Optional
+from app.services.base_provider import BaseAIProvider
+from typing import Optional
 import json
 import asyncio
 from google.api_core.exceptions import ResourceExhausted
 
-class GeminiService:
+class GeminiService(BaseAIProvider):
     def __init__(self):
         genai.configure(api_key=settings.GEMINI_API_KEY)
         # Safety settings for forensic context
@@ -41,7 +42,7 @@ class GeminiService:
                 await asyncio.sleep(40) 
         return await func(*args, **kwargs)
 
-    async def generate_content(self, prompt: str, model_name: str = "gemini-2.0-flash") -> str:
+    async def generate_content(self, prompt: str, model_name: Optional[str] = "gemini-2.0-flash") -> str:
         """
         Generates text content using the specified Gemini model.
         """
@@ -53,7 +54,7 @@ class GeminiService:
         )
         return response.text
 
-    async def generate_json(self, prompt: str, model_name: str = "gemini-2.0-flash") -> dict:
+    async def generate_json(self, prompt: str, model_name: Optional[str] = "gemini-2.0-flash") -> dict:
         """
         Generates structured JSON output.
         Ensure the prompt asks for JSON.
@@ -73,7 +74,7 @@ class GeminiService:
             # Fallback or retry logic could go here
             return {"error": "Failed to parse JSON", "raw": response.text}
 
-    async def analyze_image(self, image_path: str, prompt: str, model_name: str = "gemini-2.0-flash") -> dict:
+    async def analyze_image(self, image_path: str, prompt: str, model_name: Optional[str] = "gemini-2.0-flash") -> dict:
         """
         Analyzes an image and returns JSON.
         """
