@@ -1,7 +1,11 @@
+'use client';
+
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Eye, AlertTriangle, Info, HelpCircle } from 'lucide-react';
+import { Eye, AlertTriangle, Info, HelpCircle, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
@@ -18,10 +22,16 @@ interface Observation {
     evidence_index?: number;
 }
 
+interface EvidenceImage {
+    id: number;
+    file_path: string;
+    type: string;
+}
+
 interface EvidenceCardProps {
-    imageUrl: string; // In real app, this would be the backend URL
+    images: EvidenceImage[]; // Array of evidence items with file paths
     observations: Observation[];
-    imageCount?: number; // Total number of images analyzed
+    imageCount?: number;
 }
 
 const confidenceDescriptions = {
@@ -61,38 +71,125 @@ function ConfidenceLegend() {
     );
 }
 
-export function EvidenceCard({ imageUrl, observations, imageCount }: EvidenceCardProps) {
+// Convert Windows file path to URL path for static serving
+function getImageUrl(filePath: string): string {
+    // Extract path after 'cases/' and convert to URL
+    // e.g., "D:\path\data\cases\10\evidence\img.png" -> "/static/cases/10/evidence/img.png"
+    const match = filePath.match(/cases[\\\/](.+)/);
+    if (match) {
+        return `http://localhost:8000/static/cases/${match[1].replace(/\\/g, '/')}`;
+    }
+    return filePath;
+}
+
+export function EvidenceCard({ images, observations, imageCount }: EvidenceCardProps) {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const imageEvidence = images?.filter(e => e.type === 'IMAGE') || [];
+    const totalImages = imageEvidence.length;
+
+    const goToPrevious = () => {
+        setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : totalImages - 1));
+    };
+
+    const goToNext = () => {
+        setCurrentImageIndex((prev) => (prev < totalImages - 1 ? prev + 1 : 0));
+    };
+
+    // Get observations for current image (1-indexed in data)
+    const currentObservations = observations.filter(
+        obs => obs.evidence_index === currentImageIndex + 1
+    );
+
     return (
         <div className="grid grid-cols-1 gap-4">
             {/* Confidence Legend */}
             <ConfidenceLegend />
 
-            {/* Image Count Indicator */}
-            {imageCount && imageCount > 1 && (
-                <div className="flex items-center gap-2 text-sm text-purple-700 bg-purple-50 px-3 py-2 rounded-lg border border-purple-200">
-                    <Eye className="w-4 h-4" />
-                    <span>Analyzing <strong>{imageCount}</strong> images - observations grouped by source</span>
-                </div>
+            {/* Image Carousel */}
+            {totalImages > 0 && (
+                <Card className="overflow-hidden">
+                    <div className="relative">
+                        {/* Image Display */}
+                        <div className="relative h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <img
+                                src={getImageUrl(imageEvidence[currentImageIndex].file_path)}
+                                alt={`Evidence ${currentImageIndex + 1}`}
+                                className="max-h-full max-w-full object-contain"
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    target.nextElementSibling?.classList.remove('hidden');
+                                }}
+                            />
+                            <div className="hidden flex-col items-center text-gray-400">
+                                <ImageIcon className="w-12 h-12 mb-2" />
+                                <span className="text-sm">Image not available</span>
+                            </div>
+                        </div>
+
+                        {/* Navigation Arrows */}
+                        {totalImages > 1 && (
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white shadow-md rounded-full h-8 w-8"
+                                    onClick={goToPrevious}
+                                >
+                                    <ChevronLeft className="h-5 w-5" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white shadow-md rounded-full h-8 w-8"
+                                    onClick={goToNext}
+                                >
+                                    <ChevronRight className="h-5 w-5" />
+                                </Button>
+                            </>
+                        )}
+
+                        {/* Image Counter */}
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs">
+                            {currentImageIndex + 1} / {totalImages}
+                        </div>
+                    </div>
+
+                    {/* Dot Indicators */}
+                    {totalImages > 1 && (
+                        <div className="flex justify-center gap-1.5 py-2 bg-gray-50">
+                            {imageEvidence.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    className={`w-2 h-2 rounded-full transition-colors ${idx === currentImageIndex ? 'bg-purple-600' : 'bg-gray-300 hover:bg-gray-400'
+                                        }`}
+                                    onClick={() => setCurrentImageIndex(idx)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </Card>
             )}
 
-            {/* AI Analysis List */}
+            {/* Observations for Current Image */}
             <Card>
                 <CardContent className="p-4">
                     <h3 className="text-sm font-semibold text-gray-500 mb-3 flex items-center gap-2">
-                        <Eye className="w-4 h-4" /> Visual Discovery
+                        <Eye className="w-4 h-4" />
+                        {totalImages > 0
+                            ? `Observations for Image ${currentImageIndex + 1}`
+                            : 'Visual Discovery'}
                     </h3>
-                    <ScrollArea className="h-[300px] pr-4">
+                    <ScrollArea className="h-[200px] pr-4">
                         <div className="space-y-3">
-                            {observations.map((obs, idx) => (
+                            {(totalImages > 0 ? currentObservations : observations).map((obs, idx) => (
                                 <div key={idx} className="flex flex-col gap-1 pb-3 border-b last:border-0 border-gray-100">
                                     <div className="flex justify-between items-center">
                                         <div className="flex items-center gap-2">
                                             <span className="font-medium text-sm">{obs.label}</span>
-                                            {obs.evidence_index && (
-                                                <Badge variant="secondary" className="text-xs px-1.5 py-0">
-                                                    Image {obs.evidence_index}
-                                                </Badge>
-                                            )}
+                                            <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                                                {obs.category}
+                                            </Badge>
                                         </div>
                                         <TooltipProvider>
                                             <Tooltip>
@@ -100,8 +197,8 @@ export function EvidenceCard({ imageUrl, observations, imageCount }: EvidenceCar
                                                     <Badge
                                                         variant="outline"
                                                         className={`cursor-help ${obs.confidence === 'HIGH' ? 'text-green-600 border-green-200 bg-green-50' :
-                                                                obs.confidence === 'MEDIUM' ? 'text-yellow-600 border-yellow-200 bg-yellow-50' :
-                                                                    'text-red-500 border-red-200 bg-red-50'
+                                                            obs.confidence === 'MEDIUM' ? 'text-yellow-600 border-yellow-200 bg-yellow-50' :
+                                                                'text-red-500 border-red-200 bg-red-50'
                                                             }`}
                                                     >
                                                         {obs.confidence}
@@ -116,8 +213,8 @@ export function EvidenceCard({ imageUrl, observations, imageCount }: EvidenceCar
                                     <p className="text-xs text-gray-500 leading-snug">{obs.details}</p>
                                 </div>
                             ))}
-                            {observations.length === 0 && (
-                                <p className="text-sm text-gray-400 italic">No observations yet.</p>
+                            {(totalImages > 0 ? currentObservations : observations).length === 0 && (
+                                <p className="text-sm text-gray-400 italic">No observations for this image yet.</p>
                             )}
                         </div>
                     </ScrollArea>
@@ -126,4 +223,3 @@ export function EvidenceCard({ imageUrl, observations, imageCount }: EvidenceCar
         </div>
     );
 }
-

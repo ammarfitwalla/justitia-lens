@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -29,6 +29,10 @@ class Case(Base):
     vision_analysis_json = Column(Text, nullable=True)     # Cached vision agent result
     synthesis_analysis_json = Column(Text, nullable=True)  # Cached discrepancy detection result
     analysis_status = Column(String, default="PENDING")    # PENDING, IN_PROGRESS, COMPLETED
+    
+    # Sample case fields
+    is_sample_case = Column(Boolean, default=False)  # True for pre-loaded sample cases
+    thumbnail_path = Column(String, nullable=True)   # Path to thumbnail image for display
 
     evidence = relationship("Evidence", back_populates="case", cascade="all, delete-orphan")
     reports = relationship("Report", back_populates="case", cascade="all, delete-orphan")

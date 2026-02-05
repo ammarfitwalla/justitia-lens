@@ -206,7 +206,7 @@ export default function AnalysisPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => runNarrativeAnalysis(true)}
-                                    disabled={isNarrativeAnalyzing}
+                                    disabled={isNarrativeAnalyzing || caseData?.is_sample_case}
                                     className="h-7 px-2"
                                 >
                                     {isNarrativeAnalyzing ? (
@@ -219,7 +219,7 @@ export default function AnalysisPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => runNarrativeAnalysis(false)}
-                                    disabled={isNarrativeAnalyzing}
+                                    disabled={isNarrativeAnalyzing || caseData?.is_sample_case}
                                     className="h-7 px-2"
                                 >
                                     {isNarrativeAnalyzing ? (
@@ -279,7 +279,7 @@ export default function AnalysisPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => runVisionAnalysis(true)}
-                                    disabled={isVisionAnalyzing}
+                                    disabled={isVisionAnalyzing || caseData?.is_sample_case}
                                     className="h-7 px-2"
                                 >
                                     {isVisionAnalyzing ? (
@@ -292,7 +292,7 @@ export default function AnalysisPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => runVisionAnalysis(false)}
-                                    disabled={isVisionAnalyzing || evidence.filter(e => e.type === 'IMAGE').length === 0}
+                                    disabled={isVisionAnalyzing || caseData?.is_sample_case || evidence.filter(e => e.type === 'IMAGE').length === 0}
                                     className="h-7 px-2"
                                 >
                                     {isVisionAnalyzing ? (
@@ -318,7 +318,7 @@ export default function AnalysisPage() {
                         </div>
                     ) : (
                         <EvidenceCard
-                            imageUrl="/placeholder-evidence.jpg"
+                            images={evidence}
                             observations={observations.map(o => ({
                                 ...o,
                                 confidence: o.confidence as "LOW" | "MEDIUM" | "HIGH"
@@ -370,7 +370,7 @@ export default function AnalysisPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => runSynthesis(false)}
-                                    disabled={isSynthesizing || !canRunSynthesis}
+                                    disabled={isSynthesizing || !canRunSynthesis || caseData?.is_sample_case}
                                     className="h-7 px-2"
                                     variant={canRunSynthesis ? "default" : "outline"}
                                 >

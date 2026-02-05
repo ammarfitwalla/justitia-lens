@@ -53,6 +53,52 @@ async def list_cases(db: AsyncSession = Depends(get_db)):
     
     return cases
 
+@router.get("/sample-cases", response_model=List[schemas.CaseListItem])
+async def list_sample_cases(db: AsyncSession = Depends(get_db)):
+    """List all sample cases for demo purposes."""
+    # Query only sample cases with counts using subqueries
+    evidence_count_subq = (
+        select(models.Evidence.case_id, sql_func.count(models.Evidence.id).label("evidence_count"))
+        .group_by(models.Evidence.case_id)
+        .subquery()
+    )
+    report_count_subq = (
+        select(models.Report.case_id, sql_func.count(models.Report.id).label("report_count"))
+        .group_by(models.Report.case_id)
+        .subquery()
+    )
+    
+    result = await db.execute(
+        select(
+            models.Case,
+            sql_func.coalesce(evidence_count_subq.c.evidence_count, 0).label("evidence_count"),
+            sql_func.coalesce(report_count_subq.c.report_count, 0).label("report_count")
+        )
+        .where(models.Case.is_sample_case == True)
+        .outerjoin(evidence_count_subq, models.Case.id == evidence_count_subq.c.case_id)
+        .outerjoin(report_count_subq, models.Case.id == report_count_subq.c.case_id)
+        .order_by(models.Case.created_at.desc())
+    )
+    
+    cases = []
+    for row in result.all():
+        case = row[0]
+        cases.append(schemas.CaseListItem(
+            id=case.id,
+            title=case.title,
+            description=case.description,
+            status=case.status,
+            analysis_status=case.analysis_status or "PENDING",
+            created_at=case.created_at,
+            updated_at=case.updated_at,
+            evidence_count=row[1],
+            report_count=row[2],
+            is_sample_case=True,
+            thumbnail_path=case.thumbnail_path
+        ))
+    
+    return cases
+
 @router.post("/cases", response_model=schemas.Case)
 async def create_case(case: schemas.CaseCreate, db: AsyncSession = Depends(get_db)):
     new_case = models.Case(title=case.title, description=case.description)
@@ -94,6 +140,10 @@ async def delete_case(case_id: int, db: AsyncSession = Depends(get_db)):
     case = await db.get(models.Case, case_id)
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
+    
+    # Prevent deletion of sample cases
+    if case.is_sample_case:
+        raise HTTPException(status_code=403, detail="Sample cases cannot be deleted")
     
     # Delete the case (cascade will handle related records)
     await db.delete(case)

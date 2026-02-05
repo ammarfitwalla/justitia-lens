@@ -78,6 +78,8 @@ class Case(CaseBase):
     narrative_analysis_json: Optional[str] = None
     vision_analysis_json: Optional[str] = None
     synthesis_analysis_json: Optional[str] = None
+    is_sample_case: bool = False
+    thumbnail_path: Optional[str] = None
     evidence: List[Evidence] = []
     reports: List[Report] = []
     discrepancies: List[Discrepancy] = []
@@ -95,6 +97,8 @@ class CaseListItem(BaseModel):
     updated_at: Optional[datetime] = None
     evidence_count: int = 0
     report_count: int = 0
+    is_sample_case: bool = False
+    thumbnail_path: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
 

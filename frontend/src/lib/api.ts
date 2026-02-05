@@ -20,6 +20,7 @@ export interface Case {
     synthesis_analysis_json?: string;
     evidence?: Evidence[];
     reports?: Report[];
+    is_sample_case?: boolean;
 }
 
 export interface CaseListItem {
@@ -32,6 +33,8 @@ export interface CaseListItem {
     updated_at?: string;
     evidence_count: number;
     report_count: number;
+    is_sample_case?: boolean;
+    thumbnail_path?: string;
 }
 
 export interface Report {
@@ -80,6 +83,9 @@ export const endpoints = {
     // Case management
     getCases: () =>
         api.get<CaseListItem[]>('/cases'),
+
+    getSampleCases: () =>
+        api.get<CaseListItem[]>('/sample-cases'),
 
     createCase: (data: { title: string; description: string }) =>
         api.post<Case>('/cases', data),

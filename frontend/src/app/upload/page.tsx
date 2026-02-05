@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreateCaseForm } from '@/components/CreateCaseForm';
 import { UploadZone } from '@/components/UploadZone';
-import { endpoints } from '@/lib/api';
+import { SampleCaseCard } from '@/components/SampleCaseCard';
+import { SampleCaseModal } from '@/components/SampleCaseModal';
+import { endpoints, CaseListItem } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, FileText, Image, Scale, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, FileText, Image, Scale, CheckCircle2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function UploadPage() {
@@ -14,6 +16,24 @@ export default function UploadPage() {
     const [reportId, setReportId] = useState<number | null>(null);
     const [evidenceCount, setEvidenceCount] = useState(0);
     const router = useRouter();
+
+    // Sample cases state
+    const [sampleCases, setSampleCases] = useState<CaseListItem[]>([]);
+    const [selectedSampleCase, setSelectedSampleCase] = useState<CaseListItem | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Fetch sample cases on mount
+    useEffect(() => {
+        const fetchSampleCases = async () => {
+            try {
+                const res = await endpoints.getSampleCases();
+                setSampleCases(res.data);
+            } catch (error) {
+                console.error('Failed to fetch sample cases:', error);
+            }
+        };
+        fetchSampleCases();
+    }, []);
 
     const handleReportUpload = async (file: File) => {
         if (!caseId) return;
@@ -25,6 +45,11 @@ export default function UploadPage() {
         if (!caseId) return;
         await endpoints.uploadEvidence(caseId, file);
         setEvidenceCount(prev => prev + 1);
+    };
+
+    const handleSampleCaseClick = (sampleCase: CaseListItem) => {
+        setSelectedSampleCase(sampleCase);
+        setIsModalOpen(true);
     };
 
     return (
@@ -70,10 +95,46 @@ export default function UploadPage() {
                     </div>
                 </div>
 
-                {/* Step 1: Case Meta */}
+                {/* Step 1: Case Meta + Sample Cases */}
                 {!caseId && (
-                    <div className="animate-fade-in">
+                    <div className="animate-fade-in space-y-8">
                         <CreateCaseForm onSuccess={setCaseId} />
+
+                        {/* Sample Cases Section */}
+                        {sampleCases.length > 0 && (
+                            <div className="pt-8">
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-border"></div>
+                                    </div>
+                                    <div className="relative flex justify-center">
+                                        <span className="bg-background px-4 text-sm text-muted-foreground">
+                                            or explore a sample case
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Sparkles className="h-5 w-5 text-primary" />
+                                        <h2 className="text-lg font-semibold">Sample Cases</h2>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mb-6">
+                                        Try one of our pre-loaded cases to see how Justitia Lens analyzes evidence and identifies discrepancies.
+                                    </p>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {sampleCases.map((sampleCase) => (
+                                            <SampleCaseCard
+                                                key={sampleCase.id}
+                                                sampleCase={sampleCase}
+                                                onClick={() => handleSampleCaseClick(sampleCase)}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -146,6 +207,13 @@ export default function UploadPage() {
                     </div>
                 )}
             </main>
+
+            {/* Sample Case Modal */}
+            <SampleCaseModal
+                sampleCase={selectedSampleCase}
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+            />
         </div>
     );
 }
