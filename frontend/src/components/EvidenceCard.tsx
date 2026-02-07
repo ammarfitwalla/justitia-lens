@@ -72,12 +72,18 @@ function ConfidenceLegend() {
 }
 
 // Convert Windows file path to URL path for static serving
+// Also handles full URLs (e.g., from Supabase Storage)
 function getImageUrl(filePath: string): string {
-    // Extract path after 'cases/' and convert to URL
-    // e.g., "D:\path\data\cases\10\evidence\img.png" -> "/static/cases/10/evidence/img.png"
+    // If already a URL, return as-is
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        return filePath;
+    }
+
+    // Extract path after 'cases/' and convert to URL for local development
     const match = filePath.match(/cases[\\\/](.+)/);
     if (match) {
-        return `http://localhost:8000/static/cases/${match[1].replace(/\\/g, '/')}`;
+        const cleanPath = match[1].replace(/\\/g, '/');
+        return `http://localhost:8000/static/cases/${cleanPath}`;
     }
     return filePath;
 }

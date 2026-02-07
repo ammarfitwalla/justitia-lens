@@ -5,6 +5,7 @@ import { CreateCaseForm } from '@/components/CreateCaseForm';
 import { UploadZone } from '@/components/UploadZone';
 import { SampleCaseCard } from '@/components/SampleCaseCard';
 import { SampleCaseModal } from '@/components/SampleCaseModal';
+import { Navbar } from '@/components/Navbar';
 import { endpoints, CaseListItem } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,8 +55,11 @@ export default function UploadPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            {/* Header */}
-            <header className="border-b border-border sticky top-0 z-10 backdrop-blur-xl bg-background/80">
+            {/* Global Navigation */}
+            <Navbar />
+
+            {/* Page Header */}
+            <header className="border-b border-border bg-background/80">
                 <div className="max-w-5xl mx-auto px-6 py-5">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-muted">

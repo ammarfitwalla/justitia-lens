@@ -188,6 +188,164 @@ CASE_25_8842_SYNTHESIS = {
     ]
 }
 
+# ============================================================================
+# Case #25-7718: Protest Arrest - Timing discrepancy on warnings vs force
+# ============================================================================
+
+CASE_25_7718_NARRATIVE = {
+    "timeline": [
+        {
+            "timestamp_ref": "14:30",
+            "entity": "Mobile Field Force Alpha Squad",
+            "action": "arrived at",
+            "object": "200 block of Central Avenue",
+            "certainty": "EXPLICIT",
+            "description": "Alpha Squad arrived on scene and established perimeter. 200-250 demonstrators blocking Central Avenue."
+        },
+        {
+            "timestamp_ref": "14:31",
+            "entity": "Sgt. T. Reynolds",
+            "action": "received authorization from",
+            "object": "Lt. Harrison for dispersal orders",
+            "certainty": "EXPLICIT",
+            "description": "Sergeant made contact with Field Commander and received authorization to issue dispersal orders."
+        },
+        {
+            "timestamp_ref": "14:32",
+            "entity": "Sgt. T. Reynolds",
+            "action": "issued first warning via",
+            "object": "LRAD acoustic device",
+            "certainty": "EXPLICIT",
+            "description": "First verbal warning issued stating assembly declared unlawful with 5 minutes to disperse."
+        },
+        {
+            "timestamp_ref": "14:33",
+            "entity": "Sgt. T. Reynolds",
+            "action": "issued second warning via",
+            "object": "LRAD",
+            "certainty": "EXPLICIT",
+            "description": "Second warning issued via LRAD with same dispersal content."
+        },
+        {
+            "timestamp_ref": "14:37",
+            "entity": "Sgt. T. Reynolds",
+            "action": "issued third and final warning",
+            "object": "threatening chemical agents",
+            "certainty": "EXPLICIT",
+            "description": "Third and final warning issued: disperse now or chemical agents will be deployed."
+        },
+        {
+            "timestamp_ref": "14:38",
+            "entity": "Demonstrators",
+            "action": "began throwing",
+            "object": "water bottles and debris at police",
+            "certainty": "EXPLICIT",
+            "description": "Report states crowd did not disperse and several individuals threw objects toward police line."
+        },
+        {
+            "timestamp_ref": "14:39",
+            "entity": "Sgt. T. Reynolds",
+            "action": "gave order to deploy",
+            "object": "OC spray toward front line",
+            "certainty": "EXPLICIT",
+            "description": "After 5-minute dispersal period and all warnings issued, order given to deploy pepper spray."
+        },
+        {
+            "timestamp_ref": "14:40",
+            "entity": "Arrest teams",
+            "action": "moved forward and arrested",
+            "object": "multiple subjects for failure to disperse",
+            "certainty": "EXPLICIT",
+            "description": "Arrest teams detained subjects for unlawful assembly and failure to disperse."
+        }
+    ]
+}
+
+CASE_25_7718_VISION = {
+    "observations": [
+        {
+            "timestamp_ref": "14:32:15",
+            "category": "ACTION",
+            "entity": "Police officers",
+            "label": "Deploying pepper spray",
+            "confidence": "HIGH",
+            "details": "Bodycam footage clearly shows OC spray being deployed toward crowd at 14:32:15. Officers in riot gear visible spraying chemical agent toward protesters.",
+            "evidence_index": 1
+        },
+        {
+            "timestamp_ref": "14:32:15",
+            "category": "PERSON",
+            "entity": "Protesters",
+            "label": "Hands raised, non-aggressive posture",
+            "confidence": "HIGH",
+            "details": "Several protesters visible with hands raised in non-threatening posture at moment of spray deployment. No objects being thrown visible in this frame.",
+            "evidence_index": 1
+        },
+        {
+            "timestamp_ref": "14:32:15",
+            "category": "ENVIRONMENT",
+            "entity": "Scene",
+            "label": "Daytime urban protest",
+            "confidence": "HIGH",
+            "details": "Daytime scene on Central Avenue. Crowd of approximately 200 people visible. Signs and banners present. Police line visible in riot formation.",
+            "evidence_index": 1
+        },
+        {
+            "timestamp_ref": "14:33:00",
+            "category": "ACTION",
+            "entity": "Sgt. Reynolds",
+            "label": "Using LRAD megaphone",
+            "confidence": "HIGH",
+            "details": "Bodycam footage shows officer with LRAD device issuing verbal warning at 14:33:00. This is AFTER the 14:32:15 spray deployment visible in prior footage.",
+            "evidence_index": 2
+        },
+        {
+            "timestamp_ref": "14:33:00",
+            "category": "ENVIRONMENT",
+            "entity": "Crowd",
+            "label": "Visible distress from prior spray",
+            "confidence": "MEDIUM",
+            "details": "Protesters in frame showing signs of irritation - rubbing eyes, some retreating. Consistent with exposure to OC spray that occurred 45 seconds earlier.",
+            "evidence_index": 2
+        },
+        {
+            "timestamp_ref": "14:33:00",
+            "category": "OBJECT",
+            "entity": "LRAD Device",
+            "label": "Long Range Acoustic Device",
+            "confidence": "HIGH",
+            "details": "Officer clearly holding and speaking into LRAD device to issue dispersal warning.",
+            "evidence_index": 2
+        }
+    ]
+}
+
+CASE_25_7718_SYNTHESIS = {
+    "discrepancies": [
+        {
+            "timestamp_ref": "14:32-14:33",
+            "clean_claim": "First dispersal warning issued at 14:32, followed by second warning at 14:33, with OC spray deployment at 14:39 after all warnings completed",
+            "visual_fact": "Bodycam footage timestamp shows OC spray deployed at 14:32:15, while LRAD warning being issued at 14:33:00",
+            "description": "CRITICAL TIMING DISCREPANCY: Officer's report states warnings were issued BEFORE force deployment (14:32-14:37 warnings, 14:39 spray). However, bodycam timestamps show pepper spray was deployed at 14:32:15, which is 45 SECONDS BEFORE the warning visible at 14:33:00. Force preceded warning.",
+            "status": "FLAGGED"
+        },
+        {
+            "timestamp_ref": "14:38",
+            "clean_claim": "Demonstrators began throwing water bottles and debris at police line before spray deployment",
+            "visual_fact": "Bodycam footage at 14:32:15 shows protesters with hands raised in non-aggressive posture at moment of spray deployment",
+            "description": "DISCREPANCY: Report claims objects were being thrown justifying force, but visual evidence shows protesters in non-threatening posture with raised hands when spray was deployed.",
+            "status": "FLAGGED"
+        },
+        {
+            "timestamp_ref": "14:33",
+            "clean_claim": "Crowd was given 5-minute window to disperse after first warning before any force used",
+            "visual_fact": "Spray deployment at 14:32:15, first visible warning at 14:33:00 - no 5-minute dispersal window observed",
+            "description": "CRITICAL DISCREPANCY: Report claims required 5-minute dispersal period was honored before force. Visual evidence shows force was deployed before or simultaneously with warnings, not after a 5-minute waiting period.",
+            "status": "FLAGGED"
+        }
+    ]
+}
+
 # Sample cases configuration
 SAMPLE_CASES = [
     {
@@ -199,6 +357,15 @@ SAMPLE_CASES = [
         "vision_analysis": CASE_25_8842_VISION,
         "synthesis_analysis": CASE_25_8842_SYNTHESIS,
     },
+    {
+        "source_dir": "20",  # Protest arrest case
+        "title": "Protest Arrest - Case #25-7718",
+        "description": "A protest dispersal operation where the report claims proper warnings were issued before deploying crowd control measures. Bodycam timestamp analysis reveals a critical timing discrepancy - force may have been deployed before warnings were given.",
+        # Pre-computed analysis results
+        "narrative_analysis": CASE_25_7718_NARRATIVE,
+        "vision_analysis": CASE_25_7718_VISION,
+        "synthesis_analysis": CASE_25_7718_SYNTHESIS,
+    },
 ]
 
 
@@ -206,10 +373,7 @@ async def seed_sample_cases():
     """Seed sample cases from existing case directories."""
     
     # Create database connection
-    database_url = (
-        f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@"
-        f"{settings.POSTGRES_SERVER}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
-    )
+    database_url = settings.get_database_url()
     
     engine = create_async_engine(database_url, echo=True)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

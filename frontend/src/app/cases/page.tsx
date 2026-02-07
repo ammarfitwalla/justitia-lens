@@ -5,6 +5,7 @@ import { endpoints, CaseListItem } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Navbar } from '@/components/Navbar';
 import { Loader2, Plus, Trash2, Eye, RefreshCw, FileText, Image, Scale } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -51,9 +52,9 @@ export default function CasesPage() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'COMPLETED':
-                return <Badge className="bg-accent hover:bg-accent/90">Completed</Badge>;
+                return <Badge className="bg-green-600 hover:bg-green-700 text-white">Completed</Badge>;
             case 'IN_PROGRESS':
-                return <Badge className="bg-chart-3 hover:bg-chart-3/90">In Progress</Badge>;
+                return <Badge className="bg-amber-500 hover:bg-amber-600 text-white">In Progress</Badge>;
             default:
                 return <Badge variant="outline" className="border-muted-foreground/30">Pending</Badge>;
         }
@@ -71,10 +72,13 @@ export default function CasesPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading cases...</p>
+            <div className="min-h-screen bg-background">
+                <Navbar />
+                <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 56px)' }}>
+                    <div className="text-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+                        <p className="text-muted-foreground">Loading cases...</p>
+                    </div>
                 </div>
             </div>
         );
@@ -82,8 +86,11 @@ export default function CasesPage() {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            {/* Header */}
-            <header className="glass border-b border-border/50 sticky top-0 z-10 backdrop-blur-xl">
+            {/* Global Navigation */}
+            <Navbar />
+
+            {/* Page Header */}
+            <header className="border-b border-border/50 bg-background/80">
                 <div className="max-w-6xl mx-auto px-6 py-5">
                     <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                         <div className="flex items-center gap-3">

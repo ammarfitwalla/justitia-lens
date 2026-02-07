@@ -51,7 +51,7 @@ class AgentNarrative:
 
     async def process_report(self, file_path: str) -> dict:
         try:
-            text = PDFService.extract_text(file_path)
+            text = await PDFService.extract_text(file_path)
             return await self.extract_claims(text)
         except Exception as e:
             import traceback

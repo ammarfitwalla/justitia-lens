@@ -168,6 +168,15 @@ async def upload_evidence(
     case = await db.get(models.Case, case_id)
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
+        
+    # Check evidence limit (Max 3)
+    result = await db.execute(
+        select(sql_func.count(models.Evidence.id))
+        .where(models.Evidence.case_id == case_id)
+    )
+    current_count = result.scalar()
+    if current_count >= 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 evidence files allowed per case")
 
     # Determine type based on mime type or extension
     mime_type = file.content_type
@@ -203,6 +212,15 @@ async def upload_report(
 
     if not file.filename.endswith(".pdf"):
          raise HTTPException(status_code=400, detail="Only PDF reports are supported")
+         
+    # Check file size (Limit 20MB)
+    MAX_SIZE = 20 * 1024 * 1024 # 20MB
+    content = await file.read()
+    if len(content) > MAX_SIZE:
+        raise HTTPException(status_code=400, detail="File too large. Maximum size is 20MB")
+    
+    # Reset file cursor for saving
+    await file.seek(0)
 
     # Save file to case-specific directory
     file_path = await save_upload_file(file, case_id=case_id, subfolder="reports")

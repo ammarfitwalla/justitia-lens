@@ -5,6 +5,7 @@ import { endpoints, NarrativeClaim, VisionObservation, Case, SynthesisDiscrepanc
 import { ClaimCard } from '@/components/ClaimCard';
 import { EvidenceCard } from '@/components/EvidenceCard';
 import { DiscrepancyCard } from '@/components/DiscrepancyCard';
+import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, RefreshCw, CheckCircle, ArrowLeft, FileText, Eye, AlertTriangle, Zap } from 'lucide-react';
@@ -149,9 +150,12 @@ export default function AnalysisPage() {
     const isFullyComplete = hasNarrativeCache && hasVisionCache && hasSynthesisCache;
 
     return (
-        <div className="h-screen flex flex-col bg-gray-50">
-            {/* Header */}
-            <header className="bg-white border-b px-6 py-4 flex justify-between items-center">
+        <div className="h-screen flex flex-col bg-background">
+            {/* Global Navigation */}
+            <Navbar />
+
+            {/* Page Header */}
+            <header className="bg-background border-b border-border px-6 py-4 flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <Link href="/cases">
                         <Button variant="ghost" size="sm">
@@ -160,7 +164,7 @@ export default function AnalysisPage() {
                     </Link>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-xl font-bold">
+                            <h1 className="text-xl font-bold text-foreground">
                                 {caseData?.title || `Investigation #${caseId}`}
                             </h1>
                             {isFullyComplete && (
@@ -169,7 +173,7 @@ export default function AnalysisPage() {
                                 </Badge>
                             )}
                         </div>
-                        <p className="text-sm text-gray-500">Discovery Analysis Dashboard</p>
+                        <p className="text-sm text-muted-foreground">Discovery Analysis Dashboard</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
