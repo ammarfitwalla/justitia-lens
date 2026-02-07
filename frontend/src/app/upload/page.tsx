@@ -7,7 +7,7 @@ import { SampleCaseCard } from '@/components/SampleCaseCard';
 import { SampleCaseModal } from '@/components/SampleCaseModal';
 import { Navbar } from '@/components/Navbar';
 import { endpoints, CaseListItem } from '@/lib/api';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, FileText, Image, Scale, CheckCircle2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -22,15 +22,19 @@ export default function UploadPage() {
     const [sampleCases, setSampleCases] = useState<CaseListItem[]>([]);
     const [selectedSampleCase, setSelectedSampleCase] = useState<CaseListItem | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLoadingSampleCases, setIsLoadingSampleCases] = useState(true);
 
     // Fetch sample cases on mount
     useEffect(() => {
         const fetchSampleCases = async () => {
+            setIsLoadingSampleCases(true);
             try {
                 const res = await endpoints.getSampleCases();
                 setSampleCases(res.data);
             } catch (error) {
                 console.error('Failed to fetch sample cases:', error);
+            } finally {
+                setIsLoadingSampleCases(false);
             }
         };
         fetchSampleCases();
@@ -105,7 +109,7 @@ export default function UploadPage() {
                         <CreateCaseForm onSuccess={setCaseId} />
 
                         {/* Sample Cases Section */}
-                        {sampleCases.length > 0 && (
+                        {(isLoadingSampleCases || sampleCases.length > 0) && (
                             <div className="pt-8">
                                 <div className="relative">
                                     <div className="absolute inset-0 flex items-center">
@@ -128,13 +132,32 @@ export default function UploadPage() {
                                     </p>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {sampleCases.map((sampleCase) => (
-                                            <SampleCaseCard
-                                                key={sampleCase.id}
-                                                sampleCase={sampleCase}
-                                                onClick={() => handleSampleCaseClick(sampleCase)}
-                                            />
-                                        ))}
+                                        {isLoadingSampleCases ? (
+                                            // Loading skeletons
+                                            <>
+                                                {[1, 2, 3].map((i) => (
+                                                    <Card key={i} className="overflow-hidden animate-pulse">
+                                                        <div className="h-32 bg-muted"></div>
+                                                        <CardContent className="p-4">
+                                                            <div className="h-4 bg-muted rounded mb-2"></div>
+                                                            <div className="h-3 bg-muted rounded w-3/4 mb-3"></div>
+                                                            <div className="flex gap-3">
+                                                                <div className="h-3 bg-muted rounded w-16"></div>
+                                                                <div className="h-3 bg-muted rounded w-16"></div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </>
+                                        ) : (
+                                            sampleCases.map((sampleCase) => (
+                                                <SampleCaseCard
+                                                    key={sampleCase.id}
+                                                    sampleCase={sampleCase}
+                                                    onClick={() => handleSampleCaseClick(sampleCase)}
+                                                />
+                                            ))
+                                        )}
                                     </div>
                                 </div>
                             </div>
