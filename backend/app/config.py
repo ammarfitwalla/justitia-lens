@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     CLOUDQWEN_VISION_MODEL: str = "qwen-vl-plus"
     
     # Storage
-    STORAGE_DIR: str = os.path.join(os.getcwd(), "data")
+    STORAGE_DIR: str = "/tmp" if os.environ.get("K_SERVICE") else os.path.join(os.getcwd(), "data")
     STORAGE_BACKEND: str = "local"  # "local" or "supabase"
     
     # Supabase (for Storage and optionally DB)

@@ -19,6 +19,7 @@ interface UploadZoneProps {
 interface UploadedFile {
     name: string;
     status: 'uploading' | 'complete' | 'error';
+    message?: string;
 }
 
 export function UploadZone({ onUpload, type, label, accept, multiple = false }: UploadZoneProps) {
@@ -42,9 +43,10 @@ export function UploadZone({ onUpload, type, label, accept, multiple = false }: 
                 await onUpload(file);
                 setProgress(100);
                 setUploadedFiles([{ name: file.name, status: 'complete' }]);
-            } catch (error) {
+            } catch (error: any) {
                 console.error(error);
-                setUploadedFiles([{ name: file.name, status: 'error' }]);
+                const msg = error.response?.data?.detail || error.message || "Upload failed";
+                setUploadedFiles([{ name: file.name, status: 'error', message: msg }]);
             } finally {
                 setIsUploading(false);
             }
@@ -62,9 +64,10 @@ export function UploadZone({ onUpload, type, label, accept, multiple = false }: 
             try {
                 await onUpload(file);
                 setUploadedFiles(prev => [...prev, { name: file.name, status: 'complete' }]);
-            } catch (error) {
+            } catch (error: any) {
                 console.error(`Failed to upload ${file.name}:`, error);
-                setUploadedFiles(prev => [...prev, { name: file.name, status: 'error' }]);
+                const msg = error.response?.data?.detail || error.message || "Upload failed";
+                setUploadedFiles(prev => [...prev, { name: file.name, status: 'error', message: msg }]);
             }
         }
 
@@ -73,11 +76,29 @@ export function UploadZone({ onUpload, type, label, accept, multiple = false }: 
         setCurrentFile('');
     }, [onUpload, multiple]);
 
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
         onDrop,
         accept,
-        maxFiles: multiple ? 10 : 1, // Allow up to 10 images
-        disabled: isUploading
+        maxFiles: multiple ? 3 : 1, // Match backend limit of 3
+        maxSize: 20 * 1024 * 1024, // 20MB limit
+        disabled: isUploading,
+        onDropRejected: (rejections) => {
+            rejections.forEach(rejection => {
+                rejection.errors.forEach(error => {
+                    let message = error.message;
+                    if (error.code === 'file-too-large') {
+                        message = `File is larger than 20MB`;
+                    } else if (error.code === 'too-many-files') {
+                        message = `Maximum 3 files allowed`;
+                    }
+                    setUploadedFiles(prev => [...prev, {
+                        name: rejection.file.name,
+                        status: 'error',
+                        message: message
+                    }]);
+                });
+            });
+        }
     });
 
     const hasUploads = uploadedFiles.length > 0;
@@ -136,6 +157,7 @@ export function UploadZone({ onUpload, type, label, accept, multiple = false }: 
                                     )}
                                     <span className={`truncate ${file.status === 'error' ? 'text-red-500' : 'text-gray-600'}`}>
                                         {file.name}
+                                        {file.message && <span className="text-xs text-red-400 ml-1">({file.message})</span>}
                                     </span>
                                 </div>
                             ))}

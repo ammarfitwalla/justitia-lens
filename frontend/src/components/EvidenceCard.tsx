@@ -79,11 +79,12 @@ function getImageUrl(filePath: string): string {
         return filePath;
     }
 
-    // Extract path after 'cases/' and convert to URL for local development
+    // Extract path after 'cases/' and convert to URL
     const match = filePath.match(/cases[\\\/](.+)/);
     if (match) {
         const cleanPath = match[1].replace(/\\/g, '/');
-        return `http://localhost:8000/static/cases/${cleanPath}`;
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'https://justitia-backend-594957503553.us-central1.run.app';
+        return `${apiUrl}/static/cases/${cleanPath}`;
     }
     return filePath;
 }

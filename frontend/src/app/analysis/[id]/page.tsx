@@ -35,6 +35,8 @@ export default function AnalysisPage() {
     const [hasVisionCache, setHasVisionCache] = useState(false);
     const [hasSynthesisCache, setHasSynthesisCache] = useState(false);
 
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
         const fetchCase = async () => {
             try {
@@ -77,6 +79,8 @@ export default function AnalysisPage() {
                 }
             } catch (err) {
                 console.error("Failed to load case", err);
+            } finally {
+                setIsLoading(false);
             }
         };
         fetchCase();
@@ -148,6 +152,21 @@ export default function AnalysisPage() {
     const isAnyAnalyzing = isNarrativeAnalyzing || isVisionAnalyzing || isSynthesizing;
     const canRunSynthesis = hasNarrativeCache && hasVisionCache;
     const isFullyComplete = hasNarrativeCache && hasVisionCache && hasSynthesisCache;
+
+    if (isLoading) {
+        return (
+            <div className="h-screen flex flex-col bg-background">
+                <Navbar />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-4">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                        <h2 className="text-xl font-semibold">Loading Investigation...</h2>
+                        <p className="text-muted-foreground">Retrieving case files and evidence.</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="h-screen flex flex-col bg-background">

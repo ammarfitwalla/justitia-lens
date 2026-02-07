@@ -21,7 +21,7 @@ export function SampleCaseCard({ sampleCase, onClick }: SampleCaseCardProps) {
             <div className="relative h-32 bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
                 {sampleCase.thumbnail_path ? (
                     <img
-                        src={`http://localhost:8000/api/v1/files/${encodeURIComponent(sampleCase.thumbnail_path)}`}
+                        src={`${process.env.NEXT_PUBLIC_API_URL || 'https://justitia-backend-594957503553.us-central1.run.app/api/v1'}/files/${encodeURIComponent(sampleCase.thumbnail_path)}`}
                         alt={sampleCase.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {

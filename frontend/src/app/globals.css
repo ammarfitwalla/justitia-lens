@@ -142,3 +142,37 @@
     }
   }
 }
+
+body {
+  @apply bg-background text-foreground min-h-screen relative;
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+}
+
+body::before {
+  content: "CONFIDENTIAL // LENS ANALYSIS";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  font-size: 8rem;
+  font-weight: 900;
+  color: rgba(0, 0, 0, 0.03);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: -1;
+  font-family: var(--font-mono);
+  letter-spacing: -0.05em;
+}
+
+/* Add a subtle vignette border */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.05);
+  z-index: -1;
+}
