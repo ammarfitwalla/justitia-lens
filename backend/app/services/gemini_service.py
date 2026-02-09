@@ -102,7 +102,7 @@ class GeminiService(BaseAIProvider):
         # This line should never be reached, but for safety
         raise Exception("Retry logic failed unexpectedly")
 
-    async def generate_content(self, prompt: str, model_name: Optional[str] = "gemini-2.0-flash") -> str:
+    async def generate_content(self, prompt: str, model_name: Optional[str] = "gemini-3.0-flash") -> str:
         """
         Generates text content using the specified Gemini model.
         """
@@ -117,7 +117,7 @@ class GeminiService(BaseAIProvider):
         
         return response.text
 
-    async def generate_json(self, prompt: str, model_name: Optional[str] = "gemini-2.0-flash") -> dict:
+    async def generate_json(self, prompt: str, model_name: Optional[str] = "gemini-3.0-flash") -> dict:
         """
         Generates structured JSON output. Ensure the prompt asks for JSON.
         """
@@ -151,7 +151,7 @@ class GeminiService(BaseAIProvider):
         
         return mime_type
 
-    async def analyze_image(self, image_path: str, prompt: str, model_name: Optional[str] = "gemini-2.0-flash") -> dict:
+    async def analyze_image(self, image_path: str, prompt: str, model_name: Optional[str] = "gemini-3.0-flash") -> dict:
         """
         Analyzes an image and returns JSON.
         """
